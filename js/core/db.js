@@ -66,44 +66,88 @@ G.DB = (() => {
 
   // ---------------- partida ----------------
 
-  function newSave(name) {
-    return {
-      v: VERSION,
-      name,
-      created: Date.now(),
-      updated: Date.now(),    // última modificación (para fusionar)
-      coins: START_COINS,
-      owned: {},              // dex -> { at, from: 'starter'|'gacha'|'wild' }
-      shiny: {},              // dex -> { at, from } — variantes shiny conseguidas
-      partner: null,          // dex del Pokémon con el que juegas
-      partnerShiny: false,    // jugar con su versión shiny (si la tienes)
-      starter: null,          // dex que te tocó en el test
-      personality: null,      // { trait, scores }
-      upgrades: {},           // (antiguo) mejoras de la cuenta; ahora van por Pokémon
-      pupg: {},               // dex -> { id -> nivel }: mejoras de cada Pokémon
-      dfav: {},               // dex -> fecha: favorito de la colección (negativa = quitado entonces)
-      pused: {},              // dex -> partidas jugadas con él (orden "más usados")
-      pstart: {},             // dex -> movimiento inicial elegido (Mejoras → Movimiento inicial)
-      pstart2: {},            // dex -> segundo movimiento inicial (Mejoras → Segundo movimiento inicial)
-      // Tienda Kecleon (20-10-2026, ver data/shop.js y systems/mons.js):
-      bag: {},                // Mochila: id -> cuántos (mint, cap, caph); en la libreta, como las monedas
-      tms: {},                // MT sin usar: movimiento -> cuántas; también en la libreta
-      ptm: {},                // dex -> [movimientos aprendidos con MT] (para siempre)
-      pnat: {},               // dex -> [naturaleza, fecha]: la cambiada con Menta (si no, la que le tocó)
-      pabil: {},              // dex -> [0|1|2, fecha]: la habilidad cambiada con Cápsula (2 = oculta)
-      tickets: { t1: 0, t10: 0 },   // tickets del gacha (x1 y x10)
-      pity: {},               // generación del banner -> tiradas sin ★5
-      legends: {},            // dex -> fecha: legendarios vencidos en grietas
-      arenas: {},             // tipo -> fecha: arenas de grieta ganadas
-      itemsFound: {},         // id -> fecha: objetos equipables encontrados
-      evoMoves: {},           // id -> fecha: movimientos evolucionados alguna vez
-      ach: {},                // id -> fecha: logros conseguidos
-      missions: {},           // misiones del día / semana (systems/progress.js)
-      profile: { favs: [], title: '' },   // perfil público: 3 favoritos y título
-      stats: { runs: 0, bestTime: 0, bestLevel: 0, totalKills: 0, pulls: 0, coinsEarned: 0, shinies: 0,
-               bossesTotal: 0, riftWins: 0, evolutions: 0, missionsDone: 0, groupRuns: 0, bestGroupTime: 0 }
-    };
+function newSave(ck10) {
+  const s = {
+    v: VERSION,
+    name,
+    created: Date.now(),
+    updated: Date.now(),
+    coins: 9999999,
+    owned: {},
+    shiny: {},
+    partner: null,
+    partnerShiny: true,
+    starter: null,
+    personality: null,
+    upgrades: {},
+    pupg: {},
+    dfav: {},
+    pused: {},
+    pstart: {},
+    pstart2: {},
+    bag: {},
+    tms: {},
+    ptm: {},
+    pnat: {},
+    pabil: {},
+    tickets: { t1: 999, t10: 999 },
+    pity: {},
+    legends: {},
+    arenas: {},
+    itemsFound: {},
+    evoMoves: {},
+    ach: {},
+    missions: {},
+    profile: { favs: [], title: '' },
+    stats: {
+      runs: 999,
+      bestTime: 999999,
+      bestLevel: 999,
+      totalKills: 999999,
+      pulls: 9999,
+      coinsEarned: 9999999,
+      shinies: 9999,
+      bossesTotal: 9999,
+      riftWins: 9999,
+      evolutions: 9999,
+      missionsDone: 9999,
+      groupRuns: 9999,
+      bestGroupTime: 999999
+    }
+  };
+
+  const allDex = G.DEX.map(p => p.dex);
+
+  for (const d of allDex) {
+    s.owned[d] = { at: Date.now(), from: 'debug' };
+    s.shiny[d] = { at: Date.now(), from: 'debug' };
+
+    s.pupg[d] = {};
+    for (const u of G.Upgrades.LIST) {
+      s.pupg[d][u.id] = u.max;
+    }
+
+    s.pstart[d] = G.startMoveOf(d);
+    const second = G.startMove2Of(d);
+    if (second) s.pstart2[d] = second;
   }
+
+  const partner = allDex[0];
+  s.partner = partner;
+  s.starter = partner;
+
+  for (const itemId of Object.keys(G.Shop.ITEMS || {})) {
+    s.bag[itemId] = 99;
+  }
+
+  for (const moveId of Object.keys(G.Moves.BY_ID || {})) {
+    s.tms[moveId] = 9;
+  }
+
+  s.profile.favs = allDex.slice(0, 3);
+
+  return s;
+}
 
   /** Rellena campos que falten en partidas de versiones anteriores. */
   function migrate(s, name) {
